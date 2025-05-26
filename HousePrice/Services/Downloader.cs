@@ -13,6 +13,7 @@ namespace HousePrice
     {
         //[政府實價登錄網站] https://plvr.land.moi.gov.tw/DownloadOpenData
         private MySettings mySettings; //讀取appsettings.json的設定資料
+        private HttpClient httpClient = new();
         private const string downloadUrl = "https://plvr.land.moi.gov.tw//DownloadSeason?type=zip&fileName=lvr_landcsv.zip";
         private const string csvPattern = @"(?>^|[\\\/])([a-z])_lvr_land_([a-b])(.csv?)$";
         //[縣市代號]_lvr_land_[交易類型]，交易類型：a-房屋買賣交易, b-新成屋交易, c-租房交易
@@ -66,6 +67,8 @@ namespace HousePrice
         private async Task DownloadAndScanCsv(int year, int season, string saveToPath, ActionBlock<string> block)
         {
             string zipFile = await DownloadFile(year, season, saveToPath);
+            if (string.IsNullOrWhiteSpace(zipFile)) return; //下載失敗，跳離
+
             string extractPath = UnZip(zipFile, saveToPath);
             List<string> csvFiles = ScanFolder(extractPath);
             foreach (var f in csvFiles)
@@ -77,14 +80,29 @@ namespace HousePrice
 
         private async Task<string> DownloadFile(int year, int season, string saveToPath)
         {
-            HttpClient httpClient = new();
             if (!File.Exists($"{saveToPath}\\{year}S{season}.zip"))
             {
-                using (var stream = await httpClient.GetStreamAsync($"{downloadUrl}&season={year}S{season}"))
-                using (var fileStream = System.IO.File.Create($"{saveToPath}\\{year}S{season}.zip"))
+                string url = $"{downloadUrl}&season={year}S{season}";
+                const int maxRetry = 3;
+                HttpResponseMessage response;
+                for (int i = 0; i < maxRetry; i++)
                 {
-                    await stream.CopyToAsync(fileStream);
-                    Console.WriteLine($"{year}_S{season} is downloaded.");
+                    response = await httpClient.GetAsync(url);
+                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        using (Stream stream = await response.Content.ReadAsStreamAsync())
+                        using (var fileStream = File.Create($"{saveToPath}\\{year}S{season}.zip"))
+                        {
+                            await stream.CopyToAsync(fileStream);
+                            Console.WriteLine($"{year}S{season}.zip is downloaded.");
+                            break; //成功
+                        }
+                    }
+                    else
+                    { 
+                        Console.WriteLine($"Error: {url} download failure.");
+                        return null;
+                    }
                 }
             }            
             return $"{year}S{season}.zip";
@@ -92,8 +110,8 @@ namespace HousePrice
 
         private string UnZip(string filename, string saveToPath)
         {
-            string zipPath = $"{saveToPath}\\{filename}";
-            string extractPath = Regex.Replace(zipPath, "\\.zip", "", RegexOptions.IgnoreCase);
+            string zipPath = Path.Combine(saveToPath, filename);
+            string extractPath = Regex.Replace(zipPath, @"\.zip", "", RegexOptions.IgnoreCase);
             if (Directory.Exists(extractPath))
             {
                 Directory.Delete(extractPath, true); //刪除資料夾及子目錄的檔案
@@ -115,11 +133,6 @@ namespace HousePrice
                     lock (sync) { csvFiles.Add(filePath); } //塞入檔案完整路徑
                 }
             });
-            /*
-            csvFiles.Sort();
-            foreach (string f in csvFiles) Console.WriteLine(f);
-            Console.WriteLine("---------------------");
-            */
             return csvFiles;
         }
 
@@ -192,12 +205,10 @@ namespace HousePrice
                 dealType = m.Groups[2].ToString().ToUpper(); //大寫
             }
             //Null checking
-            string variables = "cityCode,cityName,cityCode";
-            foreach (string v in variables.Split(","))
-            {
-                if (nameof(v) == null)
-                    throw new ArgumentException($"{v} cannot be null. (filename: {filename})");
-            }
+            if (string.IsNullOrWhiteSpace(cityCode) || 
+                string.IsNullOrWhiteSpace(cityName) ||
+                string.IsNullOrWhiteSpace(dealType))
+                throw new ArgumentException($"cityCode/cityName/dealType cannot be null. (filename: {filename})");
 
             //透過out參數回傳
             tableName = dealType switch
@@ -210,10 +221,16 @@ namespace HousePrice
             
             //宣告
             DataTable dt;
-            
+
             //讀取CSV內容並轉入DataTable
+            var csvConfig = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.CreateSpecificCulture("zh-TW"))
+            {
+                Delimiter = ",",
+                MissingFieldFound = null,
+                BadDataFound = null //跳過異常資料列
+            };
             using (var reader = new StreamReader(filename))
-            using (var csv = new CsvReader(reader, CultureInfo.CreateSpecificCulture("zh-tw")))
+            using (var csv = new CsvReader(reader, csvConfig))
             {
                 BaseMapping houseData = dealType switch
                 {

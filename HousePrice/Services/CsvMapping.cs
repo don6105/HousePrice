@@ -80,7 +80,7 @@ namespace HousePrice.Services
 
     public class OldHouse : BaseMapping
     {
-        // DB欄位型態、名稱、CSV欄位次序
+        //中古屋交易資料：DB欄位型態、名稱、CSV欄位次序
         private (Type type, int csvIdx) town = (typeof(string), 0);
         private (Type type, int csvIdx) deal_type = (typeof(string), 1);
         private (Type type, int csvIdx) location = (typeof(string), 2);
@@ -121,7 +121,7 @@ namespace HousePrice.Services
 
     public class NewHouse : BaseMapping
     {
-        // DB欄位型態、名稱、CSV欄位次序
+        //新成屋交易資料：DB欄位型態、名稱、CSV欄位次序
         private (Type type, int csvIdx) town = (typeof(string), 0);
         private (Type type, int csvIdx) deal_type = (typeof(string), 1);
         private (Type type, int csvIdx) location = (typeof(string), 2);
@@ -159,8 +159,7 @@ namespace HousePrice.Services
 
     public class RentHouse : BaseMapping
     {
-        // DB欄位型態、名稱、CSV欄位次序
-
+        //租賃房屋交易資料：DB欄位型態、名稱、CSV欄位次序
         public RentHouse(string cityName) : base(cityName) { }
     }
 

@@ -4,24 +4,28 @@ using CsvHelper;
 
 namespace HousePrice.Services
 {
-    public class BaseMapping
+    //設定 DB 和 CSV 的對照關係
+    public class CsvMapping
     {
+        protected virtual string tableName => null;
         protected string city;
-        private Dictionary<string, int> columnMapping; //class反射效率差，優化
+        private Dictionary<string, int> _columnMapping; //class反射效率差，優化
 
-        public BaseMapping(string cityName)
+        public CsvMapping(string cityName)
         {
             city = cityName;
-            columnMapping = [];
+            _columnMapping = [];
         }
 
         //透過「繼承+Reflection」產生DataRow的結構
         public DataTable InitDatatable()
         {
-            DataTable dt = new();
+            DataTable dt = new(tableName);
             dt.Columns.Add("city", typeof(string));
 
             Type type = this.GetType(); //透過繼承，取得實際子類別
+
+            //Class Reflection
             FieldInfo[] fields = type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             foreach (var field in fields)
             {
@@ -34,18 +38,18 @@ namespace HousePrice.Services
                     //設定DataTable的欄位
                     dt.Columns.Add(DbColumnName, DbColumnType);
                     //優化：Reflection效率差，紀錄「DB欄位名稱:CSV欄位順序」
-                    columnMapping.Add(DbColumnName, CsvColumnIdx); 
+                    _columnMapping.Add(DbColumnName, CsvColumnIdx); 
                 }
             }
             return dt;
         }
 
-        //透過「繼承+Reflection」塞入DataRow的資料
+        //透過columnMapping對應關係，將CSV資料塞入DataRow
         public DataRow Mapping(DataRow row, CsvReader csv)
         {
             row["city"] = city;
             
-            foreach (var field in columnMapping)
+            foreach (var field in _columnMapping)
             {
                 Type columnType = row.Table.Columns[field.Key].DataType;
                 row[field.Key] = convertType(csv.GetField<string>(field.Value), columnType);
@@ -78,8 +82,10 @@ namespace HousePrice.Services
         }
     }
 
-    public class OldHouse : BaseMapping
+    public class OldHouse : CsvMapping
     {
+        protected override string tableName => "old_house";
+
         //中古屋交易資料：DB欄位型態、名稱、CSV欄位次序
         private (Type type, int csvIdx) town = (typeof(string), 0);
         private (Type type, int csvIdx) deal_type = (typeof(string), 1);
@@ -119,9 +125,11 @@ namespace HousePrice.Services
         public OldHouse(string cityName) : base(cityName) { }
     }
 
-    public class NewHouse : BaseMapping
+    public class NewHouse : CsvMapping
     {
-        //新成屋交易資料：DB欄位型態、名稱、CSV欄位次序
+        protected override string tableName => "new_house";
+
+        //新成屋交易資料：DB欄位名稱 = (DB欄位型態, CSV欄位次序)
         private (Type type, int csvIdx) town = (typeof(string), 0);
         private (Type type, int csvIdx) deal_type = (typeof(string), 1);
         private (Type type, int csvIdx) location = (typeof(string), 2);
@@ -157,9 +165,9 @@ namespace HousePrice.Services
         public NewHouse(string cityName) : base(cityName) { }
     }
 
-    public class RentHouse : BaseMapping
+    public class RentHouse : CsvMapping
     {
-        //租賃房屋交易資料：DB欄位型態、名稱、CSV欄位次序
+        //租賃房屋交易資料：DB欄位名稱 = (DB欄位型態, CSV欄位次序)
         public RentHouse(string cityName) : base(cityName) { }
     }
 

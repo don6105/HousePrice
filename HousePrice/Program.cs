@@ -1,4 +1,5 @@
 using HousePrice;
+using HousePrice.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,10 +28,7 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-var mySettings = new MySettings();
-builder.Configuration.GetRequiredSection(nameof(MySettings)).Bind(mySettings);
-
-Downloader dl = new(mySettings);
-dl.Run();
+CsvImporter importer = new();
+importer.Run();
 
 //app.Run();

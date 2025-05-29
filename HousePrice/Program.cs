@@ -28,7 +28,9 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
-CsvImporter importer = new();
-importer.Run();
+using (DataImporter importer = new())
+{
+    importer.Run();
+}
 
 //app.Run();

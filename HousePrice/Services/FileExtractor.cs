@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 namespace HousePrice.Services
 {
@@ -8,14 +9,12 @@ namespace HousePrice.Services
         private static string CSV_PATTERN = MySettings.CsvPattern;
         //[縣市代號]_lvr_land_[交易類型]，交易類型：a-房屋買賣交易, b-新成屋交易, c-租房交易
 
-        public static string UnZip(string filename, string saveToPath)
+        public static string UnZip(string zipPath)
         {
-            string zipPath = Path.Combine(saveToPath, filename);
             string extractPath = Regex.Replace(zipPath, @"\.zip", "", RegexOptions.IgnoreCase);
-            if (Directory.Exists(extractPath))
-            {
-                Directory.Delete(extractPath, true); //刪除資料夾及子目錄的檔案
-            }
+            //刪除資料夾及子目錄的檔案
+            if (Directory.Exists(extractPath)) Directory.Delete(extractPath, true); 
+            //開始解壓縮
             System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, extractPath);
             Console.WriteLine($"(unzip) {zipPath} => {extractPath}");
             return extractPath;
@@ -23,17 +22,17 @@ namespace HousePrice.Services
 
         public static List<string> ScanFolder(string folderPath)
         {
-            object sync = new();
-            List<string> csvFiles = [];
+            //ConcurrentBag是thread-safe版本的List，不用手動Lock
+            var csvFiles = new ConcurrentBag<string>();
+
             Parallel.ForEach(Directory.GetFiles(folderPath, "*.csv"), (filePath) =>
             {
                 string file = Path.GetFileName(filePath);
                 if (Regex.IsMatch(file, CSV_PATTERN, RegexOptions.IgnoreCase))
-                {
-                    lock (sync) { csvFiles.Add(filePath); } //塞入檔案完整路徑
-                }
+                    csvFiles.Add(filePath); //塞入檔案完整路徑
             });
-            return csvFiles;
+
+            return csvFiles.ToList();
         }
     }
 }

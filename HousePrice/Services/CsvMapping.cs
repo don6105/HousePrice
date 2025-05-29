@@ -7,20 +7,15 @@ namespace HousePrice.Services
     //設定 DB 和 CSV 的對照關係
     public class CsvMapping
     {
+        private Dictionary<string, int> _columnMapping = []; //Class反射效率差，在初始化時先記錄起來
         protected virtual string tableName => null;
         protected string city;
-        private Dictionary<string, int> _columnMapping; //class反射效率差，優化
-
-        public CsvMapping(string cityName)
-        {
-            city = cityName;
-            _columnMapping = [];
-        }
 
         //透過「繼承+Reflection」產生DataRow的結構
-        public DataTable InitDatatable()
+        public DataTable InitDatatable(string cityName)
         {
             DataTable dt = new(tableName);
+            city = cityName;
             dt.Columns.Add("city", typeof(string));
 
             Type type = this.GetType(); //透過繼承，取得實際子類別
@@ -30,7 +25,7 @@ namespace HousePrice.Services
             foreach (var field in fields)
             {
                 var value = field.GetValue(this);
-                if (value is ValueTuple<Type, int> tuple) //有透過Tuple設定DB和CSV的對應關係
+                if (value is ValueTuple<Type, int> tuple) //若已設定DB和CSV的對應關係
                 {
                     Type DbColumnType = tuple.Item1;
                     int CsvColumnIdx = tuple.Item2;
@@ -48,7 +43,7 @@ namespace HousePrice.Services
         public DataRow Mapping(DataRow row, CsvReader csv)
         {
             row["city"] = city;
-            
+
             foreach (var field in _columnMapping)
             {
                 Type columnType = row.Table.Columns[field.Key].DataType;
@@ -121,8 +116,6 @@ namespace HousePrice.Services
         private (Type type, int csvIdx) auxiliary_building_area = (typeof(decimal), 29);
         private (Type type, int csvIdx) balcony_area = (typeof(decimal), 30);
         private (Type type, int csvIdx) elevator = (typeof(string), 31);
-
-        public OldHouse(string cityName) : base(cityName) { }
     }
 
     public class NewHouse : CsvMapping
@@ -162,13 +155,5 @@ namespace HousePrice.Services
         private (Type type, int csvIdx) serial_number = (typeof(string), 27);
         private (Type type, int csvIdx) village_name = (typeof(string), 28);
         private (Type type, int csvIdx) building_no = (typeof(string), 29);
-        public NewHouse(string cityName) : base(cityName) { }
     }
-
-    public class RentHouse : CsvMapping
-    {
-        //租賃房屋交易資料：DB欄位名稱 = (DB欄位型態, CSV欄位次序)
-        public RentHouse(string cityName) : base(cityName) { }
-    }
-
 }

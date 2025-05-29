@@ -17,14 +17,13 @@ namespace HousePrice.Services
         {
             (string cityCode, string cityName, string dealType) = ParseFileName(fileName);
 
-            CsvMapping houseData = dealType switch
+            CsvMapping csvMapping = dealType switch
             {
-                "A" => new OldHouse(cityName),
-                "B" => new NewHouse(cityName),
-                "C" => new RentHouse(cityName),
+                "A" => new OldHouse(),
+                "B" => new NewHouse(),
                 _ => throw new ArgumentException($"Unknown dealType: {dealType}")
             };
-            DataTable sampleDt = houseData.InitDatatable(); //設定DataTable的結構
+            DataTable sampleDt = csvMapping.InitDatatable(cityName); //設定DataTable的結構
             DataTable dt = sampleDt.Clone(); //複製空的結構
 
             //讀取CSV內容並轉入DataTable
@@ -44,7 +43,7 @@ namespace HousePrice.Services
                     rowIdx++;
                     if (rowIdx <= 2) continue; //CSV前兩列為中英文標題
 
-                    try { row = houseData.Mapping(dt.NewRow(), csv); }
+                    try { row = csvMapping.Mapping(dt.NewRow(), csv); }
                     catch (Exception ex)
                     {
                         Console.WriteLine($"{fileName} mapping error.");
@@ -115,14 +114,14 @@ namespace HousePrice.Services
             {
                 for(int i = 0; i < maxRetry; i++)
                 {
-                    string jsonStr = Task.Run(async () => await SendRequest(httpClient)).Result;
+                    string jsonStr = Task.Run(async () => await SendRequestAsync(httpClient)).Result;
                     if (!string.IsNullOrWhiteSpace(jsonStr)) return jsonStr;
                 }
             }
             return null; //重試N次仍失敗
         }
 
-        private static async Task<string> SendRequest(HttpClient httpClient)
+        private static async Task<string> SendRequestAsync(HttpClient httpClient)
         {
             HttpResponseMessage response = await httpClient.GetAsync(CITY_URL);
             return response.IsSuccessStatusCode ? await response.Content.ReadAsStringAsync() : "";

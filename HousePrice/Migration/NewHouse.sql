@@ -1,0 +1,36 @@
+﻿/*
+-- house_price.new_house definition
+CREATE TABLE `new_house` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `city` varchar(100) NOT NULL COMMENT '城市',
+  `town` varchar(100) DEFAULT NULL COMMENT '鄉鎮市區',
+  `deal_type` varchar(100) DEFAULT NULL COMMENT '交易標的',
+  `location` varchar(1023) DEFAULT NULL COMMENT '土地位置建物門牌',
+  `area` decimal(10,2) DEFAULT NULL COMMENT '土地移轉總面積平方公尺',
+  `land_type` varchar(255) DEFAULT NULL COMMENT '都市土地使用分區',
+  `deal_date` char(7) DEFAULT NULL COMMENT '交易年月日(民國)',
+  `deal_count` varchar(100) DEFAULT NULL COMMENT '交易筆棟數',
+  `deal_floor` varchar(100) DEFAULT NULL COMMENT '移轉層次',
+  `total_floor` varchar(100) DEFAULT NULL COMMENT '總樓層數',
+  `building_type` varchar(100) DEFAULT NULL COMMENT '建物型態',
+  `main_use` varchar(100) DEFAULT NULL COMMENT '主要用途',
+  `building_material` varchar(100) DEFAULT NULL COMMENT '主要建材',
+  `building_construct_date` char(7) DEFAULT NULL COMMENT '建築完成年月',
+  `building_area` decimal(10,2) DEFAULT NULL COMMENT '建物移轉總面積平方公尺',
+  `bed_room_num` int(5) unsigned DEFAULT NULL COMMENT '建物現況格局-房',
+  `living_room_num` int(5) unsigned DEFAULT NULL COMMENT '建物現況格局-廳',
+  `bath_room_num` int(5) unsigned DEFAULT NULL COMMENT '建物現況格局-衛',
+  `management_center` varchar(50) DEFAULT NULL COMMENT '有無管理組織(管委會)',
+  `total_price` decimal(15,0) DEFAULT NULL COMMENT '總價元',
+  `avg_price` decimal(10,0) DEFAULT NULL COMMENT '單價元平方公尺',
+  `parking_type` varchar(100) DEFAULT NULL COMMENT '車位類別',
+  `parking_area` decimal(10,2) DEFAULT NULL COMMENT '車位移轉總面積平方公尺',
+  `parking_price` decimal(10,0) DEFAULT NULL COMMENT '車位總價元',
+  `comment` varchar(1023) DEFAULT NULL COMMENT '備註',
+  `serial_number` varchar(20) DEFAULT NULL COMMENT '編號',
+  `village_name` varchar(100) DEFAULT NULL COMMENT '建案名稱',
+  `building_no` varchar(50) DEFAULT NULL COMMENT '棟及號',
+  PRIMARY KEY (`id`),
+  KEY `new_house_IDX_1` (`deal_date`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+*/
